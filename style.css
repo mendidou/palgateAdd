@@ -266,37 +266,34 @@ html, body {
   max-width: 480px;
 }
 
-.gate-btn {
-  display: flex;
-  align-items: center;
-  gap: 16px;
+.gate-card {
   width: 100%;
-  padding: 16px 16px;
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  color: var(--text);
-  cursor: pointer;
-  text-align: left;
-  transition: border-color 0.15s, background 0.15s, transform 0.1s;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  user-select: none;
+  overflow: hidden;
+  transition: border-color 0.15s;
 }
 
-.gate-btn:hover { border-color: var(--accent); }
-.gate-btn:active { transform: scale(0.98); background: #1a1a2a; }
+.gate-card:hover { border-color: var(--accent); }
+
+.gate-card-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 16px 16px 12px;
+}
 
 .gate-icon {
-  width: 32px;
-  height: 32px;
+  width: 28px;
+  height: 28px;
   color: var(--accent);
   flex-shrink: 0;
 }
 
 .gate-name {
   flex: 1;
-  font-size: 1.05rem;
+  font-size: 1rem;
   font-weight: 600;
 }
 
@@ -304,8 +301,8 @@ html, body {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   background: transparent;
   border: 1px solid var(--border);
   border-radius: 8px;
@@ -316,7 +313,34 @@ html, body {
   -webkit-tap-highlight-color: transparent;
 }
 .rename-btn:active { opacity: 0.6; }
-.rename-btn svg { width: 15px; height: 15px; }
+.rename-btn svg { width: 14px; height: 14px; }
+
+.gate-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  border-top: 1px solid var(--border);
+}
+
+.gate-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 14px 8px;
+  background: transparent;
+  border: none;
+  color: var(--text);
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition: background 0.12s;
+}
+
+.gate-action-btn:active { background: rgba(78, 204, 163, 0.12); }
+.gate-action-btn.entry { color: var(--accent); border-right: 1px solid var(--border); }
+.gate-action-btn.exit  { color: #a78bfa; }
 
 /* ---------- Status text ---------- */
 

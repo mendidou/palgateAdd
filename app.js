@@ -87,47 +87,53 @@ async function loadGates(cfg) {
 
 function renderGateBtn(container, id, apiName, cfg) {
   const displayName = getDisplayName(id, apiName);
-  const wrap = document.createElement('div');
-  wrap.className = 'gate-btn';
-  wrap.dataset.deviceId = id;
-  wrap.innerHTML = `
-    <svg class="gate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <rect x="3" y="3" width="7" height="18" rx="1"/>
-      <rect x="14" y="3" width="7" height="18" rx="1"/>
-      <line x1="10" y1="12" x2="14" y2="12"/>
-    </svg>
-    <span class="gate-name">${escHtml(displayName)}</span>
-    <button class="rename-btn" title="Rename">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+  const card = document.createElement('div');
+  card.className = 'gate-card';
+  card.innerHTML = `
+    <div class="gate-card-header">
+      <svg class="gate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <rect x="3" y="3" width="7" height="18" rx="1"/>
+        <rect x="14" y="3" width="7" height="18" rx="1"/>
+        <line x1="10" y1="12" x2="14" y2="12"/>
       </svg>
-    </button>`;
+      <span class="gate-name">${escHtml(displayName)}</span>
+      <button class="rename-btn" title="Rename">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+          <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+        </svg>
+      </button>
+    </div>
+    <div class="gate-actions">
+      <button class="gate-action-btn entry">כניסה</button>
+      <button class="gate-action-btn exit">יציאה</button>
+    </div>`;
 
-  wrap.addEventListener('click', (e) => {
-    if (e.target.closest('.rename-btn')) return;
-    openGate(id, getDisplayName(id, apiName), cfg);
-  });
-
-  wrap.querySelector('.rename-btn').addEventListener('click', (e) => {
+  card.querySelector('.rename-btn').addEventListener('click', (e) => {
     e.stopPropagation();
     const cur = getDisplayName(id, apiName);
     const newName = prompt('Rename gate:', cur);
     if (newName && newName.trim()) {
       saveCustomName(id, newName.trim());
-      wrap.querySelector('.gate-name').textContent = newName.trim();
+      card.querySelector('.gate-name').textContent = newName.trim();
     }
   });
 
-  container.appendChild(wrap);
+  card.querySelector('.entry').addEventListener('click', () =>
+    openGate(id, getDisplayName(id, apiName), cfg, 1));
+  card.querySelector('.exit').addEventListener('click', () =>
+    openGate(id, getDisplayName(id, apiName), cfg, 2));
+
+  container.appendChild(card);
 }
 
-async function openGate(deviceId, name, cfg) {
-  showOverlay(`Opening ${name}...`);
+async function openGate(deviceId, name, cfg, outputNum = 1) {
+  const label = outputNum === 1 ? 'כניסה' : 'יציאה';
+  showOverlay(`${name} — ${label}...`);
   try {
-    await apiCall(`device/${deviceId}/open-gate?outputNum=1`, cfg);
+    await apiCall(`device/${deviceId}/open-gate?outputNum=${outputNum}`, cfg);
     hideOverlay();
-    showToast('Gate opened!', false);
+    showToast(`${label} נפתחה!`, false);
   } catch (err) {
     hideOverlay();
     showToast(err.message, true);
@@ -213,6 +219,7 @@ async function saveManual() {
   const container = document.getElementById('gates-container');
   container.innerHTML = '';
   renderGateBtn(container, deviceId, deviceId, cfg);
+
 }
 
 // ---------- Settings ----------
