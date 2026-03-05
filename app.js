@@ -120,18 +120,19 @@ async function startLinking() {
   const container = document.getElementById('qr-container');
   container.innerHTML = '';
 
-  // Render QR via qrcode library (loaded from CDN in index.html)
-  QRCode.toDataURL(qrData, { width: 220, margin: 2, color: { dark: '#0f0f0f', light: '#ffffff' } })
-    .then(url => {
-      const img = document.createElement('img');
-      img.src = url;
-      img.alt = 'QR Code';
-      img.width = 220;
-      container.appendChild(img);
-    })
-    .catch(() => {
-      container.innerHTML = `<pre class="qr-fallback">${escHtml(qrData)}</pre>`;
+  // Render QR via qrcodejs (loaded from CDN in index.html)
+  try {
+    new QRCode(container, {
+      text: qrData,
+      width: 220,
+      height: 220,
+      colorDark: '#000000',
+      colorLight: '#ffffff',
+      correctLevel: QRCode.CorrectLevel.M
     });
+  } catch (e) {
+    container.innerHTML = `<pre class="qr-fallback">${escHtml(qrData)}</pre>`;
+  }
 
   // Poll for linking response every 3 s
   pollTimer = setInterval(async () => {
