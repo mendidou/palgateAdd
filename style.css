@@ -266,23 +266,25 @@ html, body {
   max-width: 480px;
 }
 
-.gate-card {
-  width: 100%;
-  background: var(--surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  transition: border-color 0.15s;
-}
-
-.gate-card:hover { border-color: var(--accent); }
-
-.gate-card-header {
+.gate-btn {
   display: flex;
   align-items: center;
   gap: 14px;
-  padding: 16px 16px 12px;
+  width: 100%;
+  padding: 18px 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  color: var(--text);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.12s, transform 0.1s;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  user-select: none;
 }
+
+.gate-btn:hover  { border-color: var(--accent); }
+.gate-btn:active { transform: scale(0.98); background: #1a1a2a; }
 
 .gate-icon {
   width: 28px;
@@ -314,33 +316,6 @@ html, body {
 }
 .rename-btn:active { opacity: 0.6; }
 .rename-btn svg { width: 14px; height: 14px; }
-
-.gate-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 1px;
-  border-top: 1px solid var(--border);
-}
-
-.gate-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 14px 8px;
-  background: transparent;
-  border: none;
-  color: var(--text);
-  font-size: 1rem;
-  font-weight: 600;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  transition: background 0.12s;
-}
-
-.gate-action-btn:active { background: rgba(78, 204, 163, 0.12); }
-.gate-action-btn.entry { color: var(--accent); border-right: 1px solid var(--border); }
-.gate-action-btn.exit  { color: #a78bfa; }
 
 /* ---------- Status text ---------- */
 
