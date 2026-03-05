@@ -78,13 +78,12 @@ async function loadGates(cfg) {
       const id      = device._id || device.id;
       const outputs = device.outputs || 1;
 
-      if (!device.output1Disabled) {
-        const name = device.customName1 || device.name1 || device.name || id;
-        renderGateBtn(container, id, 1, name, cfg);
-      }
-      if (outputs >= 2 && !device.output2Disabled) {
-        const name = device.customName2 || device.name2 || `${device.name} (2)` || id;
-        renderGateBtn(container, id, 2, name, cfg);
+      const name1 = device.customName1 || device.name1 || device.name || id;
+      renderGateBtn(container, id, 1, name1, cfg);
+
+      if (outputs >= 2) {
+        const name2 = device.customName2 || device.name2 || `${device.name} (2)` || id;
+        renderGateBtn(container, id, 2, name2, cfg);
       }
     });
   } catch (err) {
