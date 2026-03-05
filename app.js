@@ -66,8 +66,7 @@ async function loadGates(cfg) {
 
   try {
     const data = await apiCall('devices/', cfg);
-    // API returns { devices: [...] }, each with id and name1
-    const devices = Array.isArray(data) ? data : (data.devices || data.data || []);
+    const devices = data.devices || [];
 
     if (!devices.length) {
       container.innerHTML = '<p class="status-text">No gates found.</p>';
@@ -76,19 +75,26 @@ async function loadGates(cfg) {
 
     container.innerHTML = '';
     devices.forEach(device => {
-      const id      = device.id || device._id || device.deviceId || '';
-      const apiName = device.name1 || device.name || device.title || id || 'Gate';
-      const { outputNum } = parseDeviceId(id);
-      const label   = outputNum > 1 ? `${apiName} (${outputNum})` : apiName;
-      renderGateBtn(container, id, label, cfg);
+      const id      = device._id || device.id;
+      const outputs = device.outputs || 1;
+
+      if (!device.output1Disabled) {
+        const name = device.customName1 || device.name1 || device.name || id;
+        renderGateBtn(container, id, 1, name, cfg);
+      }
+      if (outputs >= 2 && !device.output2Disabled) {
+        const name = device.customName2 || device.name2 || `${device.name} (2)` || id;
+        renderGateBtn(container, id, 2, name, cfg);
+      }
     });
   } catch (err) {
     container.innerHTML = `<p class="status-text error-text">Error: ${escHtml(err.message)}</p>`;
   }
 }
 
-function renderGateBtn(container, id, apiName, cfg) {
-  const displayName = getDisplayName(id, apiName);
+function renderGateBtn(container, deviceId, outputNum, apiName, cfg) {
+  const key         = `${deviceId}:${outputNum}`;
+  const displayName = getDisplayName(key, apiName);
   const btn = document.createElement('div');
   btn.className = 'gate-btn';
   btn.innerHTML = `
@@ -107,15 +113,15 @@ function renderGateBtn(container, id, apiName, cfg) {
 
   btn.addEventListener('click', (e) => {
     if (e.target.closest('.rename-btn')) return;
-    openGate(id, getDisplayName(id, apiName), cfg);
+    openGate(deviceId, outputNum, getDisplayName(key, apiName), cfg);
   });
 
   btn.querySelector('.rename-btn').addEventListener('click', (e) => {
     e.stopPropagation();
-    const cur = getDisplayName(id, apiName);
+    const cur = getDisplayName(key, apiName);
     const newName = prompt('Rename gate:', cur);
     if (newName && newName.trim()) {
-      saveCustomName(id, newName.trim());
+      saveCustomName(key, newName.trim());
       btn.querySelector('.gate-name').textContent = newName.trim();
     }
   });
@@ -123,17 +129,9 @@ function renderGateBtn(container, id, apiName, cfg) {
   container.appendChild(btn);
 }
 
-// Device IDs from the API may encode the output number: "4G500201383:2"
-// means base device "4G500201383" with outputNum=2.
-function parseDeviceId(rawId) {
-  const [deviceId, output] = String(rawId).split(':');
-  return { deviceId, outputNum: output ? parseInt(output, 10) : 1 };
-}
-
-async function openGate(rawId, name, cfg) {
+async function openGate(deviceId, outputNum, name, cfg) {
   showOverlay(`Opening ${name}...`);
   try {
-    const { deviceId, outputNum } = parseDeviceId(rawId);
     await apiCall(`device/${deviceId}/open-gate?outputNum=${outputNum}`, cfg);
     hideOverlay();
     showToast('Gate opened!', false);
@@ -176,7 +174,7 @@ async function startLinking() {
         clearInterval(pollTimer);
         pollTimer = null;
         const cfg = {
-          phone:     data.user.id,
+          phone:     parseInt(data.user.id, 10),
           token:     data.user.token,
           tokenType: parseInt(data.secondary, 10)
         };
