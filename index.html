@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+
+  <!-- PWA / iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="PalGate">
+  <meta name="theme-color" content="#0a0a0f">
+  <meta name="mobile-web-app-capable" content="yes">
+
+  <link rel="manifest" href="/manifest.json">
+  <link rel="apple-touch-icon" href="/icon-192.png">
+
+  <title>PalGate</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Setup screen ── -->
+  <div id="screen-setup" class="screen hidden">
+    <div class="logo-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="2" y="3" width="8" height="18" rx="1.5"/>
+        <rect x="14" y="3" width="8" height="18" rx="1.5"/>
+        <line x1="10" y1="12" x2="14" y2="12"/>
+        <circle cx="8" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+        <circle cx="16" cy="12" r="1.2" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <h1>PalGate</h1>
+    <p>Open your gate from anywhere</p>
+    <button id="btn-link" class="btn btn-primary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/>
+        <rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/>
+      </svg>
+      Link via QR Code
+    </button>
+    <div class="divider">or</div>
+    <button id="btn-manual" class="btn btn-secondary">Enter credentials manually</button>
+  </div>
+
+  <!-- ── QR linking screen ── -->
+  <div id="screen-qr" class="screen hidden">
+    <h2>Scan QR Code</h2>
+    <p>Open the PalGate app &rarr; Settings &rarr; Add secondary device</p>
+    <div id="qr-container"></div>
+    <p id="qr-status">Waiting for scan...</p>
+    <button id="btn-cancel-qr" class="btn btn-ghost">Cancel</button>
+  </div>
+
+  <!-- ── Manual setup screen ── -->
+  <div id="screen-manual" class="screen hidden">
+    <h2>Manual Setup</h2>
+
+    <div class="field">
+      <label for="m-phone">Phone number (international)</label>
+      <input id="m-phone" type="tel" inputmode="numeric" placeholder="972584817707">
+    </div>
+
+    <div class="field">
+      <label for="m-token">Session token (32 hex chars)</label>
+      <input id="m-token" type="text" inputmode="text" autocomplete="off"
+             placeholder="ab0b550b71d9ebedd3092c939766ccab" spellcheck="false">
+    </div>
+
+    <div class="field">
+      <label for="m-type">Token type</label>
+      <select id="m-type">
+        <option value="0">0 — SMS</option>
+        <option value="1">1 — Primary</option>
+        <option value="2" selected>2 — Secondary</option>
+      </select>
+    </div>
+
+    <div class="field">
+      <label for="m-device">Device ID</label>
+      <input id="m-device" type="text" autocomplete="off" placeholder="4G500201383" spellcheck="false">
+    </div>
+
+    <button id="btn-save-manual" class="btn btn-primary">Save &amp; Open</button>
+    <button id="btn-cancel-manual" class="btn btn-ghost">Back</button>
+  </div>
+
+  <!-- ── Gate screen ── -->
+  <div id="screen-gate" class="screen hidden">
+    <div class="gate-header">
+      <h1>My Gates</h1>
+      <div class="header-actions">
+        <button id="btn-refresh" class="icon-btn" title="Refresh">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="1 4 1 10 7 10"/>
+            <path d="M3.51 15a9 9 0 1 0 .49-4"/>
+          </svg>
+        </button>
+        <button id="btn-unlink" class="icon-btn" title="Unlink">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/>
+            <polyline points="16 17 21 12 16 7"/>
+            <line x1="21" y1="12" x2="9" y2="12"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <div id="gates-container"></div>
+  </div>
+
+  <!-- ── Loading overlay ── -->
+  <div id="overlay" class="hidden">
+    <div class="spinner"></div>
+    <p id="overlay-text">Opening gate...</p>
+  </div>
+
+  <!-- ── Toast ── -->
+  <div id="toast" class="hidden"></div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script src="/token.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
