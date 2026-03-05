@@ -222,6 +222,19 @@ async function saveManual() {
 
 }
 
+// ---------- Share link ----------
+
+function copyShareLink() {
+  const cfg = getConfig();
+  if (!cfg) return;
+  const url = `${location.origin}/?phone=${cfg.phone}&token=${cfg.token}&type=${cfg.tokenType}`;
+  navigator.clipboard.writeText(url)
+    .then(() => showToast('Link copied!', false))
+    .catch(() => {
+      prompt('Copy this link:', url);
+    });
+}
+
 // ---------- Settings ----------
 
 function unlinkDevice() {
@@ -241,6 +254,7 @@ function escHtml(str) {
 // ---------- Boot ----------
 
 function init() {
+  document.getElementById('btn-share').addEventListener('click', copyShareLink);
   document.getElementById('btn-link').addEventListener('click', startLinking);
   document.getElementById('btn-manual').addEventListener('click', showManual);
   document.getElementById('btn-cancel-qr').addEventListener('click', cancelLinking);
@@ -252,6 +266,20 @@ function init() {
   });
 
   if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
+
+  // Magic link: ?phone=...&token=...&type=1
+  const params = new URLSearchParams(location.search);
+  if (params.get('token') && params.get('phone')) {
+    const cfg = {
+      phone:     parseInt(params.get('phone'), 10),
+      token:     params.get('token'),
+      tokenType: parseInt(params.get('type') || '1', 10)
+    };
+    saveConfig(cfg);
+    history.replaceState({}, '', '/'); // clean URL
+    loadGates(cfg);
+    return;
+  }
 
   const cfg = getConfig();
   if (cfg) loadGates(cfg); else show('screen-setup');
