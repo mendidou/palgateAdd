@@ -121,10 +121,18 @@ function renderGateBtn(container, id, apiName, cfg) {
   container.appendChild(btn);
 }
 
-async function openGate(deviceId, name, cfg) {
+// Device IDs from the API may encode the output number: "4G500201383:2"
+// means base device "4G500201383" with outputNum=2.
+function parseDeviceId(rawId) {
+  const [deviceId, output] = String(rawId).split(':');
+  return { deviceId, outputNum: output ? parseInt(output, 10) : 1 };
+}
+
+async function openGate(rawId, name, cfg) {
   showOverlay(`Opening ${name}...`);
   try {
-    await apiCall(`device/${deviceId}/open-gate?outputNum=1`, cfg);
+    const { deviceId, outputNum } = parseDeviceId(rawId);
+    await apiCall(`device/${deviceId}/open-gate?outputNum=${outputNum}`, cfg);
     hideOverlay();
     showToast('Gate opened!', false);
   } catch (err) {
