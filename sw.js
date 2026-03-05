@@ -1,4 +1,4 @@
-const CACHE = 'palgate-v1';
+const CACHE = 'palgate-v4';
 const STATIC = ['/', '/index.html', '/style.css', '/token.js', '/app.js', '/manifest.json'];
 
 self.addEventListener('install', e => {
