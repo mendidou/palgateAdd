@@ -78,7 +78,9 @@ async function loadGates(cfg) {
     devices.forEach(device => {
       const id      = device.id || device._id || device.deviceId || '';
       const apiName = device.name1 || device.name || device.title || id || 'Gate';
-      renderGateBtn(container, id, apiName, cfg);
+      const { outputNum } = parseDeviceId(id);
+      const label   = outputNum > 1 ? `${apiName} (${outputNum})` : apiName;
+      renderGateBtn(container, id, label, cfg);
     });
   } catch (err) {
     container.innerHTML = `<p class="status-text error-text">Error: ${escHtml(err.message)}</p>`;
