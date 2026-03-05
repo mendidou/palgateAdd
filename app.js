@@ -1,6 +1,7 @@
 // PalGate PWA — App Logic
 
 const STORAGE_KEY = 'palgate_config';
+const NAMES_KEY   = 'palgate_names';
 let pollTimer = null;
 
 // ---------- Storage ----------
@@ -8,13 +9,19 @@ let pollTimer = null;
 function getConfig() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; }
 }
+function saveConfig(cfg) { localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg)); }
+function clearConfig()   { localStorage.removeItem(STORAGE_KEY); }
 
-function saveConfig(cfg) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+function getCustomNames() {
+  try { return JSON.parse(localStorage.getItem(NAMES_KEY)) || {}; } catch { return {}; }
 }
-
-function clearConfig() {
-  localStorage.removeItem(STORAGE_KEY);
+function saveCustomName(deviceId, name) {
+  const names = getCustomNames();
+  names[deviceId] = name;
+  localStorage.setItem(NAMES_KEY, JSON.stringify(names));
+}
+function getDisplayName(deviceId, apiName) {
+  return getCustomNames()[deviceId] || apiName;
 }
 
 // ---------- Screen management ----------
@@ -23,16 +30,11 @@ function show(id) {
   document.querySelectorAll('.screen').forEach(s => s.classList.add('hidden'));
   document.getElementById(id).classList.remove('hidden');
 }
-
 function showOverlay(text) {
   document.getElementById('overlay-text').textContent = text;
   document.getElementById('overlay').classList.remove('hidden');
 }
-
-function hideOverlay() {
-  document.getElementById('overlay').classList.add('hidden');
-}
-
+function hideOverlay() { document.getElementById('overlay').classList.add('hidden'); }
 function showToast(msg, isError) {
   const t = document.getElementById('toast');
   t.textContent = msg;
@@ -64,7 +66,7 @@ async function loadGates(cfg) {
 
   try {
     const data = await apiCall('devices/', cfg);
-    // API may return array directly or wrapped
+    // API returns { devices: [...] }, each with id and name1
     const devices = Array.isArray(data) ? data : (data.devices || data.data || []);
 
     if (!devices.length) {
@@ -74,26 +76,50 @@ async function loadGates(cfg) {
 
     container.innerHTML = '';
     devices.forEach(device => {
-      const id   = device.id   || device._id   || device.deviceId   || '';
-      const name = device.name || device.title || device.label || id || 'Gate';
-      const btn  = document.createElement('button');
-      btn.className = 'gate-btn';
-      btn.innerHTML = `
-        <svg class="gate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-          <rect x="3" y="3" width="7" height="18" rx="1"/>
-          <rect x="14" y="3" width="7" height="18" rx="1"/>
-          <line x1="10" y1="12" x2="14" y2="12"/>
-        </svg>
-        <span class="gate-name">${escHtml(name)}</span>
-        <svg class="gate-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-          <polyline points="9 18 15 12 9 6"/>
-        </svg>`;
-      btn.addEventListener('click', () => openGate(id, name, cfg));
-      container.appendChild(btn);
+      const id      = device.id || device._id || device.deviceId || '';
+      const apiName = device.name1 || device.name || device.title || id || 'Gate';
+      renderGateBtn(container, id, apiName, cfg);
     });
   } catch (err) {
     container.innerHTML = `<p class="status-text error-text">Error: ${escHtml(err.message)}</p>`;
   }
+}
+
+function renderGateBtn(container, id, apiName, cfg) {
+  const displayName = getDisplayName(id, apiName);
+  const wrap = document.createElement('div');
+  wrap.className = 'gate-btn';
+  wrap.dataset.deviceId = id;
+  wrap.innerHTML = `
+    <svg class="gate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+      <rect x="3" y="3" width="7" height="18" rx="1"/>
+      <rect x="14" y="3" width="7" height="18" rx="1"/>
+      <line x1="10" y1="12" x2="14" y2="12"/>
+    </svg>
+    <span class="gate-name">${escHtml(displayName)}</span>
+    <button class="rename-btn" title="Rename">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+      </svg>
+    </button>`;
+
+  wrap.addEventListener('click', (e) => {
+    if (e.target.closest('.rename-btn')) return;
+    openGate(id, getDisplayName(id, apiName), cfg);
+  });
+
+  wrap.querySelector('.rename-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const cur = getDisplayName(id, apiName);
+    const newName = prompt('Rename gate:', cur);
+    if (newName && newName.trim()) {
+      saveCustomName(id, newName.trim());
+      wrap.querySelector('.gate-name').textContent = newName.trim();
+    }
+  });
+
+  container.appendChild(wrap);
 }
 
 async function openGate(deviceId, name, cfg) {
@@ -120,7 +146,6 @@ async function startLinking() {
   const container = document.getElementById('qr-container');
   container.innerHTML = '';
 
-  // Render QR via qrcodejs (loaded from CDN in index.html)
   try {
     new QRCode(container, {
       text: qrData,
@@ -134,22 +159,18 @@ async function startLinking() {
     container.innerHTML = `<pre class="qr-fallback">${escHtml(qrData)}</pre>`;
   }
 
-  // Poll for linking response every 3 s
   pollTimer = setInterval(async () => {
     try {
       const res  = await fetch(`/api/link-poll?id=${uniqueId}`);
       const data = await res.json();
-
       if (data.user && data.secondary !== undefined) {
         clearInterval(pollTimer);
         pollTimer = null;
-
         const cfg = {
           phone:     data.user.id,
           token:     data.user.token,
           tokenType: parseInt(data.secondary, 10)
         };
-
         saveConfig(cfg);
         document.getElementById('qr-status').textContent = 'Linked! Loading gates...';
         await loadGates(cfg);
@@ -167,11 +188,10 @@ function cancelLinking() {
 
 function showManual() {
   show('screen-manual');
-  // Pre-fill test credentials for convenience
-  document.getElementById('m-phone').value     = '';
-  document.getElementById('m-token').value     = '';
-  document.getElementById('m-type').value      = '2';
-  document.getElementById('m-device').value    = '';
+  document.getElementById('m-phone').value  = '';
+  document.getElementById('m-token').value  = '';
+  document.getElementById('m-type').value   = '2';
+  document.getElementById('m-device').value = '';
 }
 
 async function saveManual() {
@@ -180,45 +200,19 @@ async function saveManual() {
   const tokenType = parseInt(document.getElementById('m-type').value, 10);
   const deviceId  = document.getElementById('m-device').value.trim();
 
-  if (!phone || !token || !deviceId) {
-    showToast('Fill in all fields', true);
-    return;
-  }
-  if (!/^[0-9a-fA-F]{32}$/.test(token)) {
-    showToast('Token must be 32 hex characters', true);
-    return;
-  }
+  if (!phone || !token || !deviceId) { showToast('Fill in all fields', true); return; }
+  if (!/^[0-9a-fA-F]{32}$/.test(token)) { showToast('Token must be 32 hex characters', true); return; }
 
   const cfg = { phone: parseInt(phone, 10), token, tokenType };
-
-  // Try generating a token to validate credentials
-  try {
-    generateToken(token, parseInt(phone, 10), tokenType);
-  } catch (err) {
-    showToast(`Invalid credentials: ${err.message}`, true);
-    return;
-  }
+  try { generateToken(token, parseInt(phone, 10), tokenType); }
+  catch (err) { showToast(`Invalid credentials: ${err.message}`, true); return; }
 
   saveConfig(cfg);
 
-  // Inject the device directly without calling devices/ since user provided it
   show('screen-gate');
   const container = document.getElementById('gates-container');
   container.innerHTML = '';
-  const btn = document.createElement('button');
-  btn.className = 'gate-btn';
-  btn.innerHTML = `
-    <svg class="gate-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-      <rect x="3" y="3" width="7" height="18" rx="1"/>
-      <rect x="14" y="3" width="7" height="18" rx="1"/>
-      <line x1="10" y1="12" x2="14" y2="12"/>
-    </svg>
-    <span class="gate-name">${escHtml(deviceId)}</span>
-    <svg class="gate-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-      <polyline points="9 18 15 12 9 6"/>
-    </svg>`;
-  btn.addEventListener('click', () => openGate(deviceId, deviceId, cfg));
-  container.appendChild(btn);
+  renderGateBtn(container, deviceId, deviceId, cfg);
 }
 
 // ---------- Settings ----------
@@ -233,16 +227,13 @@ function unlinkDevice() {
 
 function escHtml(str) {
   return String(str)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
 // ---------- Boot ----------
 
 function init() {
-  // Wire up buttons
   document.getElementById('btn-link').addEventListener('click', startLinking);
   document.getElementById('btn-manual').addEventListener('click', showManual);
   document.getElementById('btn-cancel-qr').addEventListener('click', cancelLinking);
@@ -250,22 +241,13 @@ function init() {
   document.getElementById('btn-save-manual').addEventListener('click', saveManual);
   document.getElementById('btn-unlink').addEventListener('click', unlinkDevice);
   document.getElementById('btn-refresh').addEventListener('click', () => {
-    const cfg = getConfig();
-    if (cfg) loadGates(cfg);
+    const cfg = getConfig(); if (cfg) loadGates(cfg);
   });
 
-  // Register service worker
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.register('/sw.js').catch(() => {});
-  }
+  if ('serviceWorker' in navigator) navigator.serviceWorker.register('/sw.js').catch(() => {});
 
-  // Route to correct screen
   const cfg = getConfig();
-  if (cfg) {
-    loadGates(cfg);
-  } else {
-    show('screen-setup');
-  }
+  if (cfg) loadGates(cfg); else show('screen-setup');
 }
 
 document.addEventListener('DOMContentLoaded', init);
